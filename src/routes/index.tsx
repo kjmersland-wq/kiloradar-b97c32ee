@@ -98,8 +98,9 @@ function Ranking({ code }: { code: CountryCode }) {
   const [period, setPeriod] = useState<Period>("week");
   const country = countries.find((c) => c.code === code)!;
   const list = [...rankings[code][period]].sort((a, b) => a.basket - b.basket);
-  const [win, ...rest] = list;
-  const max = list[list.length - 1].basket;
+  const win = list[0]!;
+  const rest = list.slice(1);
+  const max = list[list.length - 1]!.basket;
   const dig = code === "UK" ? 2 : 0;
   return (
     <section id="ranking" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6">
