@@ -46,3 +46,7 @@ export function shrinkflation(oldP: number, oldS: number, newP: number, newS: nu
 export function fmt(v: number, c: Country, digits = 2) {
   return new Intl.NumberFormat(c.locale, { style: "currency", currency: c.currency, maximumFractionDigits: digits, minimumFractionDigits: digits }).format(v);
 }
+export type Household = 1 | 2 | 4;
+/** Baskets are priced for a family of 4; smaller households scale down. */
+export const householdFactor: Record<Household, number> = { 1: 0.4, 2: 0.65, 4: 1 };
+export function basketFor(basket: number, h: Household) { return basket * householdFactor[h]; }

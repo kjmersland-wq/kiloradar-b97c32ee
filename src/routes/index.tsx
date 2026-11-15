@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Calculator, Crown, Radar, ScanBarcode, Search, ShoppingBasket, TrendingDown } from "lucide-react";
-import { countries, rankings, products, shrinkflation, unitPrice, fmt, type CountryCode, type Period } from "@/lib/kilo-data";
+import { useMemo, useState, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, Calculator, Users, Crown, Radar, ScanBarcode, Search, ShoppingBasket, TrendingDown } from "lucide-react";
+import { countries, rankings, products, shrinkflation, unitPrice, fmt, basketFor, type CountryCode, type Period, type Household } from "@/lib/kilo-data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -96,8 +96,9 @@ const periods: { id: Period; label: string }[] = [{ id: "week", label: "This wee
 
 function Ranking({ code }: { code: CountryCode }) {
   const [period, setPeriod] = useState<Period>("week");
+  const [hh, setHh] = useState<Household>(2);
   const country = countries.find((c) => c.code === code)!;
-  const list = [...rankings[code][period]].sort((a, b) => a.basket - b.basket);
+  const list = rankings[code][period].map((s) => ({ ...s, basket: basketFor(s.basket, hh) })).sort((a, b) => a.basket - b.basket);
   const win = list[0]!;
   const rest = list.slice(1);
   const max = list[list.length - 1]!.basket;
@@ -106,21 +107,20 @@ function Ranking({ code }: { code: CountryCode }) {
     <section id="ranking" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold text-savings"><ShoppingBasket className="size-4" /> Typical household basket · 42 items</p>
+          <p className="flex items-center gap-2 text-sm font-semibold text-savings"><ShoppingBasket className="size-4" /> Weekly basket · 42 everyday items</p>
           <h2 className="mt-2 text-3xl font-bold sm:text-4xl">Cheapest store in {country.name} {country.flag}</h2>
         </div>
-        <div role="tablist" className="inline-flex rounded-full border border-border bg-card p-1">
-          {periods.map((p) => (
-            <button key={p.id} role="tab" aria-selected={period === p.id} onClick={() => setPeriod(p.id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${period === p.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{p.label}</button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          <Segmented label="Period" value={period} onChange={setPeriod} options={periods.map((p) => ({ value: p.id, label: p.label }))} />
+          <Segmented label="Household size" value={hh} onChange={setHh} icon={<Users className="size-4 text-muted-foreground" />}
+            options={[{ value: 1 as Household, label: "1" }, { value: 2 as Household, label: "2" }, { value: 4 as Household, label: "4" }]} />
         </div>
       </div>
-      <div key={code + period} className="mt-8 grid gap-4 lg:grid-cols-5">
+      <div key={code + period + hh} className="mt-8 grid gap-4 lg:grid-cols-5">
         <div className="card-kilo bg-winner animate-rise relative overflow-hidden p-6 shadow-glow sm:p-8 lg:col-span-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-savings"><Crown className="size-4" /> #1 Cheapest</div>
           <p className="mt-4 font-display text-4xl font-extrabold">{win.chain}</p>
-          <p className="mt-6 text-sm text-muted-foreground">Basket total</p>
+          <p className="mt-6 text-sm text-muted-foreground">Basket for {hh === 1 ? "1 person" : `${hh} people`}</p>
           <p className="font-display text-5xl font-extrabold tabular sm:text-6xl">{fmt(win.basket, country, dig)}</p>
           <p className="mt-4 inline-flex items-center gap-1 rounded-full bg-savings/15 px-3 py-1 text-sm font-semibold text-savings">
             <TrendingDown className="size-4" /> Save {fmt(max - win.basket, country, dig)} vs. priciest
@@ -153,6 +153,18 @@ function Ranking({ code }: { code: CountryCode }) {
         </ol>
       </div>
     </section>
+  );
+}
+
+function Segmented<T extends string | number>({ label, value, onChange, options, icon }: { label: string; value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; icon?: ReactNode }) {
+  return (
+    <div role="tablist" aria-label={label} className="inline-flex items-center rounded-full border border-border bg-card p-1">
+      {icon && <span className="pl-2 pr-1">{icon}</span>}
+      {options.map((o) => (
+        <button key={String(o.value)} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${value === o.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{o.label}</button>
+      ))}
+    </div>
   );
 }
 
